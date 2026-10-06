@@ -1,0 +1,176 @@
+import { useEffect, useRef } from 'react';
+
+// The petal trail that follows the cursor on tzhu.dev: pink petals as the mouse moves, a white
+// burst on click. Mouse only; a plain 2D canvas.
+interface Petal {
+  x: number; y: number; velocityX: number; velocityY: number; rotation: number; spin: number;
+  size: number; color: string; life: number; maxLife: number; lastTime: number;
+}
+
+const PETAL_COLORS = ['#f49ab0', '#ffb5c6', '#ffd0da', '#e986a2'];
+const CLICK_PETAL_COLORS = ['#fffefe', '#fffaf8', '#ffffff', '#f7f5f4'];
+
+export default function CursorTrail() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext('2d');
+    if (!canvas || !context) return undefined;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const particles: Petal[] = [];
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let previousPointer: { x: number; y: number } | null = null;
+    let spawnCarry = 0;
+    let animationFrame = 0;
+    let previousFrameTime = performance.now();
+
+    const resize = () => {
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.round(width * pixelRatio);
+      canvas.height = Math.round(height * pixelRatio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    };
+
+    const drawPetal = (particle: Petal) => {
+      const progress = particle.life / particle.maxLife;
+      const alpha = Math.sin(Math.PI * Math.min(progress, 1));
+      const size = particle.size * (0.72 + progress * 0.36);
+      context.save();
+      context.translate(particle.x, particle.y);
+      context.rotate(particle.rotation);
+      context.scale(1, 0.74);
+      context.beginPath();
+      context.moveTo(0, -size * 0.82);
+      context.bezierCurveTo(size * 0.72, -size * 0.44, size * 0.62, size * 0.44, 0, size);
+      context.bezierCurveTo(-size * 0.62, size * 0.44, -size * 0.72, -size * 0.44, 0, -size * 0.82);
+      context.fillStyle = `${particle.color}${Math.round(alpha * 230).toString(16).padStart(2, '0')}`;
+      context.fill();
+      context.restore();
+    };
+
+    const animate = (time: number) => {
+      const delta = Math.min((time - previousFrameTime) / 16.67, 2.2);
+      previousFrameTime = time;
+      context.clearRect(0, 0, width, height);
+
+      for (let index = particles.length - 1; index >= 0; index -= 1) {
+        const particle = particles[index];
+        // A frame's timestamp is when it started, which can be just before a petal born in that
+        // frame (from a pointer event): don't let its age go negative, or its colour comes out
+        // invalid and the canvas draws it in the default black.
+        particle.life = Math.max(0, particle.life + time - particle.lastTime);
+        particle.lastTime = time;
+        particle.x += particle.velocityX * delta;
+        particle.y += particle.velocityY * delta;
+        particle.velocityX *= Math.pow(0.982, delta);
+        particle.velocityY = particle.velocityY * Math.pow(0.986, delta) + 0.025 * delta;
+        particle.rotation += particle.spin * delta;
+
+        if (particle.life >= particle.maxLife) {
+          particles.splice(index, 1);
+        } else {
+          drawPetal(particle);
+        }
+      }
+
+      if (particles.length) {
+        animationFrame = window.requestAnimationFrame(animate);
+      } else {
+        animationFrame = 0;
+      }
+    };
+
+    const emitPetal = (x: number, y: number, movementX: number, movementY: number, time: number, palette = PETAL_COLORS) => {
+      const angle = Math.random() * Math.PI * 2;
+      const outwardSpeed = 0.55 + Math.random() * 1.35;
+      particles.push({
+        x: x + (Math.random() - 0.5) * 5,
+        y: y + (Math.random() - 0.5) * 5,
+        velocityX: Math.cos(angle) * outwardSpeed - movementX * 0.018,
+        velocityY: Math.sin(angle) * outwardSpeed - movementY * 0.018,
+        rotation: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.16,
+        size: 2.2 + Math.random() * 3.2,
+        color: palette[Math.floor(Math.random() * palette.length)],
+        life: 0,
+        maxLife: 520 + Math.random() * 520,
+        lastTime: time,
+      });
+      if (particles.length > 220) particles.splice(0, particles.length - 220);
+    };
+
+    const startAnimation = (time: number) => {
+      if (particles.length && !animationFrame) {
+        previousFrameTime = time;
+        animationFrame = window.requestAnimationFrame(animate);
+      }
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerType && event.pointerType !== 'mouse') return;
+      const current = { x: event.clientX, y: event.clientY };
+      if (!previousPointer) {
+        previousPointer = current;
+        return;
+      }
+
+      const movementX = current.x - previousPointer.x;
+      const movementY = current.y - previousPointer.y;
+      const distance = Math.hypot(movementX, movementY);
+      const spacing = reduceMotion ? 28 : 8;
+      spawnCarry += distance / spacing;
+      const emitCount = Math.min(Math.floor(spawnCarry), reduceMotion ? 1 : 6);
+      spawnCarry -= emitCount;
+      const time = performance.now();
+
+      for (let index = 0; index < emitCount; index += 1) {
+        const interpolation = emitCount === 1 ? 1 : index / (emitCount - 1);
+        emitPetal(
+          previousPointer.x + movementX * interpolation,
+          previousPointer.y + movementY * interpolation,
+          movementX,
+          movementY,
+          time,
+        );
+      }
+
+      previousPointer = current;
+      startAnimation(time);
+    };
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.pointerType && event.pointerType !== 'mouse') return;
+      if (event.button !== 0) return;
+      const time = performance.now();
+      const emitCount = reduceMotion ? 3 : 10;
+      for (let index = 0; index < emitCount; index += 1) {
+        emitPetal(event.clientX, event.clientY, 0, 0, time, CLICK_PETAL_COLORS);
+      }
+      startAnimation(time);
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('pointerdown', handlePointerDown, { passive: true });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerdown', handlePointerDown);
+      particles.length = 0;
+      canvas.width = 0;
+      canvas.height = 0;
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="jl-trail" aria-hidden="true" />;
+}

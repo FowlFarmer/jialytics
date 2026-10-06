@@ -1,0 +1,120 @@
+{
+  "name": "jialytics",
+  "version": "0.1.0",
+  "description": "so you don't have to pay 22$ just to see all-time analytics",
+  "license": "MIT",
+  "author": "Theodore Zhu",
+  "homepage": "https://github.com/FowlFarmer/jialytics#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FowlFarmer/jialytics.git"
+  },
+  "bugs": "https://github.com/FowlFarmer/jialytics/issues",
+  "keywords": [
+    "analytics",
+    "web-analytics",
+    "vercel-analytics",
+    "page-views",
+    "dashboard",
+    "react",
+    "nextjs",
+    "mongodb",
+    "postgres",
+    "redis",
+    "self-hosted"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "jialytics": "./dist/cli/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "default": "./dist/react.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./dashboard": {
+      "types": "./dist/dashboard.d.ts",
+      "default": "./dist/dashboard.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./memory": {
+      "types": "./dist/adapters/memory.d.ts",
+      "default": "./dist/adapters/memory.js"
+    },
+    "./mongodb": {
+      "types": "./dist/adapters/mongodb.d.ts",
+      "default": "./dist/adapters/mongodb.js"
+    },
+    "./postgres": {
+      "types": "./dist/adapters/postgres.d.ts",
+      "default": "./dist/adapters/postgres.js"
+    },
+    "./redis": {
+      "types": "./dist/adapters/redis.d.ts",
+      "default": "./dist/adapters/redis.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "mongodb": ">=5",
+    "react": ">=18",
+    "react-dom": ">=18",
+    "three": ">=0.150"
+  },
+  "peerDependenciesMeta": {
+    "mongodb": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "three": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "jsdom": "^30.1.2",
+    "mongodb": "^7.7.0",
+    "mongodb-memory-server": "^11.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "^0.186.1",
+    "tsup": "^8.5.1",
+    "typescript": "~5.9",
+    "vitest": "^5.0.3"
+  }
+}
