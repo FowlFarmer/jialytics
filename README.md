@@ -1,3 +1,5 @@
+![Jialytics dashboard](https://raw.githubusercontent.com/FowlFarmer/jialytics/main/docs/screenshot.png)
+
 # jialytics
 
 **so you don't have to pay $22 just to see all-time analytics**
